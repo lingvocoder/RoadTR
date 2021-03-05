@@ -17,29 +17,50 @@ const list = [
     points: 5,
     objectID: 1,
   },
+  {
+    title: "Route",
+    url: "https://route.js.org/",
+    author: "Dan Abramov",
+    num_comments: 12,
+    points: 7,
+    objectID: 2,
+  },
+  {
+    title: "MobX",
+    url: "https://mobx.js.org/",
+    author: "Alex Goncharov",
+    num_comments: 6,
+    points: 15,
+    objectID: 3,
+  },
 ];
 
-function App() {
+const App = () => {
   return (
     <div>
-      <h1>My Hacker stories</h1>
-      <label htmlFor="search">search:</label>
-      <input id="search" typeof="text" />
-      <ul>
-        {list.map((item) => {
-          return (
-            <div key={item.objectID}>
-              <span>
-                <a href={item.url}>{item.title}</a>
-              </span>
-              <span>{item.author} </span>
-              <span>{item.num_comments} </span>
-              <span>{item.points}</span>
-            </div>
-          );
-        })}
-      </ul>
+      <h1>My Hacker Stories</h1>
+      <label htmlFor="search">Search:</label>
+      <input id="search" type="text" />
+      <hr />
+      <List />
+      <List />
+      <List />
     </div>
   );
-}
+};
+
+const List = () => {
+  list.map((item) => {
+    return (
+      <div key={item.objectID}>
+        <span>
+          <a href={item.url}>{item.title}</a>
+        </span>
+        <span>{item.author}</span>
+        <span>{item.num_comments} </span>
+        <span>{item.points}</span>
+      </div>
+    );
+  });
+};
 export default App;
