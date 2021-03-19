@@ -9,12 +9,26 @@ import axios from "axios";
 import styles from "./App.module.css";
 import cs from "classnames";
 import styled from "styled-components";
+import GlobalStyle from "./GlobalStyle";
+import { ReactComponent as Check } from "./Check.svg";
+import circles from "svg-patterns/p/circles";
+import stringify from "virtual-dom-stringify";
+
+const pattern = circles({
+  size: 24, // size of the pattern
+  radius: 4,
+  complement: true,
+  fill: "none", // any SVG-compatible color
+  strokeWidth: 1,
+  stroke: "#bfadee", // any SVG-compatible color
+  background: "#75b7dd", // any SVG-compatible color
+});
 
 const StyledContainer = styled.div`
   height: 100vh;
   padding: 30px;
-  background-color: #84d5d5;
-  background: linear-gradient(180deg, #b6ffea, #84d5d5);
+  //background-color: #84d5d5;
+  background: transparent;
   color: #171212;
 `;
 const StyledColumn = styled.span`
@@ -32,7 +46,32 @@ const StyledItem = styled.div`
   align-items: center;
   padding-bottom: 5px;
 `;
+const PatternsContainer = styled.div`
+  position: relative;
+`;
+const PatternsContent = styled.svg`
+  fill: none;
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  width: ${(props) => props.width};
+  height: ${(props) => props.height};
+`;
 const API_ENDPOINT = "https://hn.algolia.com/api/v1/search?query=";
+
+const BackgroundPattern = ({ children, pttrn }) => (
+  <PatternsContainer>
+    <PatternsContent>
+      <defs dangerouslySetInnerHTML={{ __html: stringify(pttrn) }} />
+      <rect width="100%" height="100%" style={{ fill: pttrn.url() }} />
+    </PatternsContent>
+
+    {children}
+  </PatternsContainer>
+);
 
 const useSemiPersistentState = (key, initialState) => {
   const [value, setValue] = useState(localStorage.getItem(key) || initialState);
@@ -123,22 +162,27 @@ const App = () => {
   };
 
   return (
-    <StyledContainer>
-      <h1 className={styles.headlinePrimary}>My Hacker Stories</h1>
-      <SearchForm
-        searchTerm={searchTerm}
-        onSearchInput={handleSearchInput}
-        onSearchSubmit={handleSearchSubmit}
-      />
+    <React.Fragment>
+      <GlobalStyle />
+      <BackgroundPattern pttrn={pattern}>
+        <StyledContainer>
+          <h1 className={styles.headlinePrimary}>My Hacker Stories</h1>
+          <SearchForm
+            searchTerm={searchTerm}
+            onSearchInput={handleSearchInput}
+            onSearchSubmit={handleSearchSubmit}
+          />
 
-      {stories.isError && <p>Something went wrong ...</p>}
+          {stories.isError && <p>Something went wrong ...</p>}
 
-      {stories.isLoading ? (
-        <p>Loading ...</p>
-      ) : (
-        <List list={stories.data} onRemoveItem={handleRemoveStory} />
-      )}
-    </StyledContainer>
+          {stories.isLoading ? (
+            <p>Loading ...</p>
+          ) : (
+            <List list={stories.data} onRemoveItem={handleRemoveStory} />
+          )}
+        </StyledContainer>
+      </BackgroundPattern>
+    </React.Fragment>
   );
 };
 
@@ -218,7 +262,7 @@ const Item = ({ item, onRemoveItem }) => (
         type="button"
         onClick={() => onRemoveItem(item)}
       >
-        Dismiss
+        <Check height="18px" width="18px" />
       </button>
     </StyledColumn>
   </StyledItem>

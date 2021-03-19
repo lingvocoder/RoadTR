@@ -39,6 +39,10 @@
   background: #171212;
   color: #ffffff;
 }
+.button:hover > svg > g {
+  fill: #ffffff;
+  stroke: #ffffff;
+}
 .buttonSmall {
   padding: 5px;
 }
@@ -64,3 +68,15 @@
   background-color: transparent;
   font-size: 24px;
 }
+.patternsContainer {
+  position: relative;
+}
+.patternsContent {
+  position: absolute;
+  z-index: -999;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+}
+
