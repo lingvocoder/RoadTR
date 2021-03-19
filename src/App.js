@@ -1,5 +1,37 @@
-import React, { useState, useEffect, useRef, useReducer } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useReducer,
+  useCallback,
+} from "react";
+import axios from "axios";
+import styles from "./App.module.css";
+import cs from "classnames";
+import styled from "styled-components";
 
+const StyledContainer = styled.div`
+  height: 100vh;
+  padding: 30px;
+  background-color: #84d5d5;
+  background: linear-gradient(180deg, #b6ffea, #84d5d5);
+  color: #171212;
+`;
+const StyledColumn = styled.span`
+  padding: 0 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  a {
+    color: inherit;
+  }
+  width: ${(props) => props.width};
+`;
+const StyledItem = styled.div`
+  display: flex;
+  align-items: center;
+  padding-bottom: 5px;
+`;
 const API_ENDPOINT = "https://hn.algolia.com/api/v1/search?query=";
 
 const useSemiPersistentState = (key, initialState) => {
@@ -48,26 +80,40 @@ const storiesReducer = (state, action) => {
 const App = () => {
   const [searchTerm, setSearchTerm] = useSemiPersistentState("search", "React");
 
+  const [url, setUrl] = useState(`${API_ENDPOINT}${searchTerm}`);
+
   const [stories, dispatchStories] = useReducer(storiesReducer, {
     data: [],
     isLoading: false,
     isError: false,
   });
 
-  useEffect(() => {
-    if (!searchTerm) return;
+  const handleFetchStories = useCallback(async () => {
     dispatchStories({ type: "STORIES_FETCH_INIT" });
 
-    fetch(`${API_ENDPOINT}${searchTerm}`)
-      .then((response) => response.json())
-      .then((result) => {
-        dispatchStories({
-          type: "STORIES_FETCH_SUCCESS",
-          payload: result.hits,
-        });
-      })
-      .catch(() => dispatchStories({ type: "STORIES_FETCH_FAILURE" }));
-  }, [searchTerm]);
+    try {
+      const result = await axios.get(url);
+      dispatchStories({
+        type: "STORIES_FETCH_SUCCESS",
+        payload: result.data.hits,
+      });
+    } catch {
+      dispatchStories({ type: "STORIES_FETCH_FAILURE" });
+    }
+  }, [url]);
+
+  useEffect(() => {
+    handleFetchStories();
+  }, [handleFetchStories]);
+
+  const handleSearchInput = (event) => {
+    setSearchTerm(event.target.value);
+  };
+
+  const handleSearchSubmit = (event) => {
+    setUrl(`${API_ENDPOINT}${searchTerm}`);
+    event.preventDefault();
+  };
 
   const handleRemoveStory = (item) => {
     dispatchStories({
@@ -76,28 +122,14 @@ const App = () => {
     });
   };
 
-  const handleSearch = (event) => {
-    setSearchTerm(event.target.value);
-  };
-
-  const searchedStories = stories.data.filter((story) =>
-    story.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   return (
-    <div>
-      <h1>My Hacker Stories</h1>
-
-      <InputWithLabel
-        id="search"
-        value={searchTerm}
-        isFocused
-        onInputChange={handleSearch}
-      >
-        <strong>Search:</strong>
-      </InputWithLabel>
-
-      <hr />
+    <StyledContainer>
+      <h1 className={styles.headlinePrimary}>My Hacker Stories</h1>
+      <SearchForm
+        searchTerm={searchTerm}
+        onSearchInput={handleSearchInput}
+        onSearchSubmit={handleSearchSubmit}
+      />
 
       {stories.isError && <p>Something went wrong ...</p>}
 
@@ -106,7 +138,30 @@ const App = () => {
       ) : (
         <List list={stories.data} onRemoveItem={handleRemoveStory} />
       )}
-    </div>
+    </StyledContainer>
+  );
+};
+
+const SearchForm = ({ onSearchSubmit, searchTerm, onSearchInput }) => {
+  return (
+    <form className={styles.searchForm} onSubmit={onSearchSubmit}>
+      <InputWithLabel
+        id="search"
+        value={searchTerm}
+        isFocused
+        onInputChange={onSearchInput}
+      >
+        <strong>Search:</strong>
+      </InputWithLabel>
+
+      <button
+        className={cs(styles.button, styles.buttonLarge)}
+        type="submit"
+        disabled={!searchTerm}
+      >
+        Submit
+      </button>
+    </form>
   );
 };
 
@@ -128,9 +183,12 @@ const InputWithLabel = ({
 
   return (
     <>
-      <label htmlFor={id}>{children}</label>
+      <label className={styles.label} htmlFor={id}>
+        {children}
+      </label>
       &nbsp;
       <input
+        className={styles.input}
         ref={inputRef}
         id={id}
         type={type}
@@ -147,19 +205,184 @@ const List = ({ list, onRemoveItem }) =>
   ));
 
 const Item = ({ item, onRemoveItem }) => (
-  <div>
-    <span>
+  <StyledItem>
+    <StyledColumn width="50%">
       <a href={item.url}>{item.title}</a>
-    </span>
-    <span>{item.author}</span>
-    <span>{item.num_comments}</span>
-    <span>{item.points}</span>
-    <span>
-      <button type="button" onClick={() => onRemoveItem(item)}>
+    </StyledColumn>
+    <StyledColumn width="30%">{item.author}</StyledColumn>
+    <StyledColumn width="10%">{item.num_comments}</StyledColumn>
+    <StyledColumn width="10%">{item.points}</StyledColumn>
+    <StyledColumn>
+      <button
+        className={cs(styles.button, styles.buttonSmall)}
+        type="button"
+        onClick={() => onRemoveItem(item)}
+      >
         Dismiss
       </button>
-    </span>
-  </div>
+    </StyledColumn>
+  </StyledItem>
 );
 
 export default App;
+
+/*The same with Class Component*/
+// const API_ENDPOINT = "https://hn.algolia.com/api/v1/search?query=";
+//
+// class App extends React.Component {
+//   constructor(props) {
+//     super(props);
+//
+//     this.state = {
+//       data: [],
+//       isLoading: false,
+//       isError: false,
+//       searchTerm: localStorage.getItem("search") || "React",
+//     };
+//
+//     this.handleSearchInput = this.handleSearchInput.bind(this);
+//     this.handleSearchSubmit = this.handleSearchSubmit.bind(this);
+//     this.handleFetchStories = this.handleFetchStories.bind(this);
+//     this.handleRemoveStory = this.handleRemoveStory.bind(this);
+//   }
+//
+//   componentDidMount() {
+//     this.handleFetchStories();
+//   }
+//
+//   componentDidUpdate(prevProps, prevState) {
+//     if (prevState.searchTerm !== this.state.searchTerm) {
+//       localStorage.setItem("search", this.state.searchTerm);
+//     }
+//   }
+//
+//   handleSearchInput(event) {
+//     this.setState({ searchTerm: event.target.value });
+//   }
+//
+//   handleSearchSubmit(event) {
+//     this.handleFetchStories();
+//
+//     event.preventDefault();
+//   }
+//
+//   handleRemoveStory(item) {
+//     const newStories = this.state.data.filter(
+//       (story) => item.objectID !== story.objectID
+//     );
+//
+//     this.setState({ data: newStories });
+//   }
+//
+//   async handleFetchStories() {
+//     this.setState({ isLoading: true, isError: false });
+//
+//     try {
+//       const result = await axios.get(`${API_ENDPOINT}${this.state.searchTerm}`);
+//
+//       this.setState({
+//         data: result.data.hits,
+//         isLoading: false,
+//         isError: false,
+//       });
+//     } catch {
+//       this.setState({ isLoading: false, isError: true });
+//     }
+//   }
+//
+//   render() {
+//     const { searchTerm, data, isLoading, isError } = this.state;
+//
+//     return (
+//       <div>
+//         <h1>My Hacker Stories</h1>
+//
+//         <SearchForm
+//           searchTerm={searchTerm}
+//           onSearchInput={this.handleSearchInput}
+//           onSearchSubmit={this.handleSearchSubmit}
+//         />
+//
+//         <hr />
+//
+//         {isError && <p>Something went wrong ...</p>}
+//
+//         {isLoading ? (
+//           <p>Loading ...</p>
+//         ) : (
+//           <List list={data} onRemoveItem={this.handleRemoveStory} />
+//         )}
+//       </div>
+//     );
+//   }
+// }
+//
+// const SearchForm = ({ searchTerm, onSearchInput, onSearchSubmit }) => (
+//   <form onSubmit={onSearchSubmit}>
+//     <InputWithLabel
+//       id="search"
+//       value={searchTerm}
+//       isFocused
+//       onInputChange={onSearchInput}
+//     >
+//       <strong>Search:</strong>
+//     </InputWithLabel>
+//
+//     <button type="submit" disabled={!searchTerm}>
+//       Submit
+//     </button>
+//   </form>
+// );
+//
+// class InputWithLabel extends React.Component {
+//   constructor(props) {
+//     super(props);
+//
+//     this.inputRef = React.createRef();
+//   }
+//
+//   componentDidMount() {
+//     if (this.props.isFocused) {
+//       this.inputRef.current.focus();
+//     }
+//   }
+//
+//   render() {
+//     const { id, value, type = "text", onInputChange, children } = this.props;
+//
+//     return (
+//       <>
+//         <label htmlFor={id}>{children}</label>
+//         &nbsp;
+//         <input
+//           ref={this.inputRef}
+//           id={id}
+//           type={type}
+//           value={value}
+//           onChange={onInputChange}
+//         />
+//       </>
+//     );
+//   }
+// }
+//
+// const List = ({ list, onRemoveItem }) =>
+//   list.map((item) => (
+//     <Item key={item.objectID} item={item} onRemoveItem={onRemoveItem} />
+//   ));
+//
+// const Item = ({ item, onRemoveItem }) => (
+//   <div>
+//     <span>
+//       <a href={item.url}>{item.title}</a>
+//     </span>
+//     <span>{item.author}</span>
+//     <span>{item.num_comments}</span>
+//     <span>{item.points}</span>
+//     <span>
+//       <button type="button" onClick={() => onRemoveItem(item)}>
+//         Dismiss
+//       </button>
+//     </span>
+//   </div>
+// );
